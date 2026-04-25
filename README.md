@@ -14,6 +14,7 @@
   - [PostgreSQL (shared)](#postgresql-shared)
   - [Dozzle](#dozzle)
   - [Netdata](#netdata)
+  - [Dockge](#dockge)
 - [Layer 2 — Services](#layer-2--services)
 - [Layer 3 — Applications](#layer-3--applications)
 
@@ -179,6 +180,18 @@ Real-time log viewer for all running containers. Read-only Docker socket access.
 Server and per-container metrics with zero configuration. Auto-discovers running containers. ML-based anomaly detection and alerting.
 
 Configure a notification channel (Telegram, email) in `netdata.conf` or via the UI to receive alerts.
+
+### Dockge
+
+`Layer 1` · [Docs](https://github.com/louislam/dockge) · [GitHub](https://github.com/louislam/dockge)
+
+**Prerequisites:** [Traefik](#traefik) (private UI).
+
+**Deploy:** [`compose/dockge/compose.yml`](compose/dockge/compose.yml)
+
+Visual manager for Docker Compose stacks. Useful for spinning up temporary stacks without SSH.
+
+Stacks are stored in `compose/dockge/stacks/` — no configuration needed.
 ```
 
 ---
