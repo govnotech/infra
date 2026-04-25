@@ -1,0 +1,40 @@
+networks:
+  traefik:
+    external: true
+
+services:
+  traefik:
+    container_name: traefik
+    image: traefik:v3
+    restart: unless-stopped
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.tailscale.address=:8443
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=traefik
+      - --certificatesresolvers.lets-encrypt.acme.dnschallenge=true
+      - --certificatesresolvers.lets-encrypt.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.lets-encrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.lets-encrypt.acme.storage=/letsencrypt/acme.json
+      - --api.dashboard=true
+    ports:
+      - ${TRAEFIK_PUBLIC_IP}:80:80
+      - ${TRAEFIK_PUBLIC_IP}:443:443
+      - ${TRAEFIK_TAILSCALE_IP}:443:8443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - traefik
+    environment:
+      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN}
+    labels:
+      traefik.enable: true
+      traefik.http.routers.traefik.rule: "Host(`traefik.${DOMAIN}`)"
+      traefik.http.routers.traefik.entrypoints: "tailscale"
+      traefik.http.routers.traefik.tls: true
+      traefik.http.routers.traefik.tls.certresolver: "lets-encrypt"
+      traefik.http.routers.traefik.service: "api@internal"

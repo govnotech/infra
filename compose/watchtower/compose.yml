@@ -1,0 +1,10 @@
+services:
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_SCHEDULE: ${WATCHTOWER_SCHEDULE}
+      WATCHTOWER_CLEANUP: true

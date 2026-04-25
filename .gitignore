@@ -1,0 +1,11 @@
+.env
+
+# macOS
+.DS_Store
+
+# editors
+.idea/
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp

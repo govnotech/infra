@@ -1,0 +1,9 @@
+{
+  "default": true,
+  "MD013": false,
+  "MD051": false,
+  "MD060": {
+    "enabled": true,
+    "style": "compact"
+  }
+}
