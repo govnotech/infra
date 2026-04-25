@@ -12,6 +12,7 @@
   - [Watchtower](#watchtower)
   - [Traefik](#traefik)
   - [PostgreSQL (shared)](#postgresql-shared)
+  - [Dozzle](#dozzle)
 - [Layer 2 — Services](#layer-2--services)
 - [Layer 3 — Applications](#layer-3--applications)
 
@@ -155,6 +156,16 @@ CREATE DATABASE umami;
 CREATE USER umami_user WITH PASSWORD '...';
 GRANT ALL PRIVILEGES ON DATABASE umami TO umami_user;
 ```
+
+### Dozzle
+
+`Layer 1` · [Docs](https://dozzle.dev/guide/what-is-dozzle) · [GitHub](https://github.com/amir20/dozzle)
+
+**Prerequisites:** [Traefik](#traefik) (private UI).
+
+**Deploy:** [`compose/dozzle/compose.yml`](compose/dozzle/compose.yml)
+
+Real-time log viewer for all running containers. Read-only Docker socket access.
 ```
 
 ---

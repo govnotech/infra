@@ -1,0 +1,20 @@
+networks:
+  traefik:
+    external: true
+
+services:
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik
+    labels:
+      traefik.enable: true
+      traefik.http.routers.dozzle.rule: "Host(`dozzle.${DOMAIN}`)"
+      traefik.http.routers.dozzle.entrypoints: "tailscale"
+      traefik.http.routers.dozzle.tls: true
+      traefik.http.routers.dozzle.tls.certresolver: "lets-encrypt"
+      traefik.http.services.dozzle.loadbalancer.server.port: 8080
