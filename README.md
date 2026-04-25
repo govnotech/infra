@@ -204,7 +204,6 @@ Stacks are stored in `compose/dockge/stacks/` — no configuration needed.
 **Deploy:** [`compose/uptime-kuma/compose.yml`](compose/uptime-kuma/compose.yml)
 
 Uptime monitoring for external URLs. Sends alerts via Telegram or email when a service goes down.
-```
 
 ---
 
