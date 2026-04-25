@@ -11,6 +11,7 @@
 - [Layer 1 — Infrastructure](#layer-1--infrastructure)
   - [Watchtower](#watchtower)
   - [Traefik](#traefik)
+  - [PostgreSQL (shared)](#postgresql-shared)
 - [Layer 2 — Services](#layer-2--services)
 - [Layer 3 — Applications](#layer-3--applications)
 
@@ -131,6 +132,31 @@ Two entrypoints:
 
 Any service must join the `traefik` network and carry `traefik.enable=true` labels. Public services use `entrypoints: websecure`, private services use `entrypoints: tailscale`.
 
+### PostgreSQL (shared)
+
+`Layer 1` · [Docs](https://www.postgresql.org/docs/) · [GitHub](https://github.com/postgres/postgres)
+
+**Prerequisites:** Docker.
+
+**Deploy:** [`compose/postgres/compose.yml`](compose/postgres/compose.yml)
+
+Single PostgreSQL instance shared by [Umami](#umami), [Hoppscotch](#hoppscotch), [Penpot](#penpot), and any other services that need a relational DB. Each service gets its own database and user.
+
+**Required in `.env`:** `POSTGRES_USER`, `POSTGRES_PASSWORD` — see [`.env.example`](.env.example).
+
+Create per-service databases after first start:
+
+```bash
+docker exec -it postgres psql -U $POSTGRES_USER
+```
+
+```sql
+CREATE DATABASE umami;
+CREATE USER umami_user WITH PASSWORD '...';
+GRANT ALL PRIVILEGES ON DATABASE umami TO umami_user;
+```
+```
+
 ---
 
 ## Layer 2 — Services
@@ -141,6 +167,6 @@ _Sorted alphabetically._
 
 ## Layer 3 — Applications
 
-Custom applications deployed on this server. Each app connects to shared infrastructure ([Traefik](#traefik)) defined in Layers 0–2.
+Custom applications deployed on this server. Each app connects to shared infrastructure ([Traefik](#traefik), [PostgreSQL](#postgresql-shared)) defined in Layers 0–2.
 
 _This layer is out of scope for this repository — each application lives in its own repository with its own compose configuration._
