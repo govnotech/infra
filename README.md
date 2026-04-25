@@ -4,6 +4,7 @@
 
 ## Table of Contents
 
+- [Quick Start](#quick-start)
 - [Access Model](#access-model)
 - [Layer 0 — Network](#layer-0--network)
   - [Cloudflare](#cloudflare)
@@ -15,6 +16,7 @@
   - [Dozzle](#dozzle)
   - [Netdata](#netdata)
   - [Dockge](#dockge)
+  - [Uptime Kuma](#uptime-kuma)
 - [Layer 2 — Services](#layer-2--services)
 - [Layer 3 — Applications](#layer-3--applications)
 
@@ -192,6 +194,16 @@ Configure a notification channel (Telegram, email) in `netdata.conf` or via the 
 Visual manager for Docker Compose stacks. Useful for spinning up temporary stacks without SSH.
 
 Stacks are stored in `compose/dockge/stacks/` — no configuration needed.
+
+### Uptime Kuma
+
+`Layer 1` · [Docs](https://github.com/louislam/uptime-kuma/wiki) · [GitHub](https://github.com/louislam/uptime-kuma)
+
+**Prerequisites:** [Traefik](#traefik) (private UI).
+
+**Deploy:** [`compose/uptime-kuma/compose.yml`](compose/uptime-kuma/compose.yml)
+
+Uptime monitoring for external URLs. Sends alerts via Telegram or email when a service goes down.
 ```
 
 ---

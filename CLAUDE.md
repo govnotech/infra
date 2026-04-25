@@ -56,3 +56,17 @@ When adding or changing a service — always update `README.md`, `CLAUDE.md`, an
 - `.env.example` — add any new env vars for the service
 
 When introducing a new pattern or convention (naming, file structure, gitignore approach, etc.) — add it to `CLAUDE.md` immediately.
+
+## Current stack
+
+Layer 1 order is intentional — it reflects recommended deployment sequence (dependencies first, backups last). Do not reorder without a reason.
+
+| Service | Subdomain | Entrypoint | Notes |
+| --- | --- | --- | --- |
+| Watchtower | — | — | Auto-updates containers |
+| Traefik | `traefik.DOMAIN` | tailscale | Reverse proxy, TLS, dashboard |
+| PostgreSQL | — | — | Shared DB, `postgres` Docker network |
+| Dozzle | `dozzle.DOMAIN` | tailscale | Container log viewer |
+| Netdata | `netdata.DOMAIN` | tailscale | Server and container metrics |
+| Dockge | `dockge.DOMAIN` | tailscale | Compose stack manager |
+| Uptime Kuma | `uptime.DOMAIN` | tailscale | Uptime monitoring |
