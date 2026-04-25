@@ -13,6 +13,7 @@
   - [Traefik](#traefik)
   - [PostgreSQL (shared)](#postgresql-shared)
   - [Dozzle](#dozzle)
+  - [Netdata](#netdata)
 - [Layer 2 — Services](#layer-2--services)
 - [Layer 3 — Applications](#layer-3--applications)
 
@@ -166,6 +167,18 @@ GRANT ALL PRIVILEGES ON DATABASE umami TO umami_user;
 **Deploy:** [`compose/dozzle/compose.yml`](compose/dozzle/compose.yml)
 
 Real-time log viewer for all running containers. Read-only Docker socket access.
+
+### Netdata
+
+`Layer 1` · [Docs](https://learn.netdata.cloud) · [GitHub](https://github.com/netdata/netdata)
+
+**Prerequisites:** [Traefik](#traefik) (private UI).
+
+**Deploy:** [`compose/netdata/compose.yml`](compose/netdata/compose.yml)
+
+Server and per-container metrics with zero configuration. Auto-discovers running containers. ML-based anomaly detection and alerting.
+
+Configure a notification channel (Telegram, email) in `netdata.conf` or via the UI to receive alerts.
 ```
 
 ---

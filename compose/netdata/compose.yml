@@ -1,0 +1,30 @@
+networks:
+  traefik:
+    external: true
+
+services:
+  netdata:
+    container_name: netdata
+    image: netdata/netdata:latest
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - ./data:/var/lib/netdata
+      - ./config:/etc/netdata
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik
+    labels:
+      traefik.enable: true
+      traefik.http.routers.netdata.rule: "Host(`netdata.${DOMAIN}`)"
+      traefik.http.routers.netdata.entrypoints: "tailscale"
+      traefik.http.routers.netdata.tls: true
+      traefik.http.routers.netdata.tls.certresolver: "lets-encrypt"
+      traefik.http.services.netdata.loadbalancer.server.port: 19999
