@@ -1,10 +1,10 @@
 # Server Infrastructure — Agent Context
 
-Self-hosted VPS stack. Each service lives in `compose/{name}/compose.yml`. All compose files are run from the **repo root** so the shared `.env` is auto-loaded:
+Self-hosted VPS stack. Each service lives in `compose/{name}/compose.yml`. All compose files are run from the **repo root** with `--env-file .env` to load the shared env file (Docker Compose v2 loads `.env` from the compose file's directory, not cwd):
 
 ```bash
-docker compose -f compose/watchtower/compose.yml up -d
-docker compose -f compose/traefik/compose.yml up -d
+docker compose --env-file .env -f compose/watchtower/compose.yml up -d
+docker compose --env-file .env -f compose/traefik/compose.yml up -d
 ```
 
 ## Architecture

@@ -31,14 +31,12 @@
    cp .env.example .env
    ```
 
-3. Run each service from the repo root using the `-f` flag so that the shared `.env` is picked up automatically:
+3. Run each service from the repo root with `--env-file .env` (Docker Compose v2 resolves `.env` relative to the compose file, not cwd):
 
    ```bash
-   docker compose -f compose/watchtower/compose.yml up -d
-   docker compose -f compose/traefik/compose.yml up -d
+   docker compose --env-file .env -f compose/watchtower/compose.yml up -d
+   docker compose --env-file .env -f compose/traefik/compose.yml up -d
    ```
-
-All compose files reference variables from the root `.env` via Docker Compose's automatic env-file resolution (it reads `.env` from the working directory).
 
 **Image versioning:** Critical services (PostgreSQL, Redis) are pinned to a major version (e.g. `postgres:16`) — [Watchtower](#watchtower) updates patch/minor releases but never jumps to a new major. Non-critical services (Dozzle, Watchtower itself) use `latest`.
 
