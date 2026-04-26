@@ -34,6 +34,7 @@
 3. Run each service from the repo root using the `-f` flag so that the shared `.env` is picked up automatically:
 
    ```bash
+   docker compose -f compose/watchtower/compose.yml up -d
    docker compose -f compose/traefik/compose.yml up -d
    ```
 

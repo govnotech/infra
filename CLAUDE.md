@@ -3,6 +3,7 @@
 Self-hosted VPS stack. Each service lives in `compose/{name}/compose.yml`. All compose files are run from the **repo root** so the shared `.env` is auto-loaded:
 
 ```bash
+docker compose -f compose/watchtower/compose.yml up -d
 docker compose -f compose/traefik/compose.yml up -d
 ```
 
