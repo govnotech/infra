@@ -18,6 +18,7 @@
   - [Dockge](#dockge)
   - [Uptime Kuma](#uptime-kuma)
 - [Layer 2 — Services](#layer-2--services)
+  - [PocketBase](#pocketbase)
 - [Layer 3 — Applications](#layer-3--applications)
 
 ---
@@ -209,6 +210,16 @@ Uptime monitoring for external URLs. Sends alerts via Telegram or email when a s
 ## Layer 2 — Services
 
 _Sorted alphabetically._
+
+### PocketBase
+
+`Layer 2` · [Docs](https://pocketbase.io/docs/) · [GitHub](https://github.com/pocketbase/pocketbase)
+
+**Prerequisites:** [Traefik](#traefik) (public API), [Tailscale](#tailscale) (admin UI).
+
+**Deploy:** [`compose/pocketbase/compose.yml`](compose/pocketbase/compose.yml)
+
+Lightweight BaaS: SQLite, built-in auth, realtime subscriptions, file storage, admin UI. Single binary, ~30 MB RAM. Use for MVPs and small projects.
 
 ---
 

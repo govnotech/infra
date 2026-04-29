@@ -1,0 +1,28 @@
+networks:
+  traefik:
+    external: true
+
+services:
+  pocketbase:
+    container_name: pocketbase
+    image: ghcr.io/muchobien/pocketbase:latest
+    restart: unless-stopped
+    volumes:
+      - ./data:/pb/pb_data
+    networks:
+      - traefik
+    labels:
+      traefik.enable: true
+      traefik.http.services.pocketbase.loadbalancer.server.port: 8090
+
+      # Admin UI — private, Tailscale only
+      traefik.http.routers.pocketbase.rule: Host(`pb.${DOMAIN}`)
+      traefik.http.routers.pocketbase.entrypoints: tailscale
+      traefik.http.routers.pocketbase.tls: true
+      traefik.http.routers.pocketbase.tls.certresolver: lets-encrypt
+
+      # API — public, admin UI path blocked
+      traefik.http.routers.pocketbase-api.rule: Host(`pb.${DOMAIN}`) && !PathPrefix(`/_/`)
+      traefik.http.routers.pocketbase-api.entrypoints: websecure
+      traefik.http.routers.pocketbase-api.tls: true
+      traefik.http.routers.pocketbase-api.tls.certresolver: lets-encrypt

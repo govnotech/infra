@@ -71,3 +71,4 @@ Layer 1 order is intentional — it reflects recommended deployment sequence (de
 | Netdata | `netdata.DOMAIN` | tailscale | Server and container metrics |
 | Dockge | `dockge.DOMAIN` | tailscale | Compose stack manager |
 | Uptime Kuma | `uptime.DOMAIN` | tailscale | Uptime monitoring |
+| PocketBase | `pb.DOMAIN` | tailscale (admin UI) + websecure (API) | Lightweight BaaS, SQLite, admin UI blocked on public |
