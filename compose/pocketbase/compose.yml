@@ -8,7 +8,7 @@ services:
     image: ghcr.io/muchobien/pocketbase:latest
     restart: unless-stopped
     volumes:
-      - ./data:/pb/pb_data
+      - ./data:/pb_data
     networks:
       - traefik
     labels:
