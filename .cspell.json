@@ -10,6 +10,7 @@
     "exposedbydefault",
     "govnotech",
     "healthcheck",
+    "hostnames",
     "isready",
     "letsencrypt",
     "louislam",

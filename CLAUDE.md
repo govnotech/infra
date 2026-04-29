@@ -41,6 +41,10 @@ labels:
 - Read-only (`:ro`) for monitoring tools
 - Read-write for management tools
 
+**Volume paths** — before writing a volume mount, verify the actual data path in the image: check the Dockerfile (`VOLUME`, `WORKDIR`, entrypoint args like `--dir`) on Docker Hub or the image's GitHub repo. Never guess paths.
+
+**YAML quoting** — do not quote values unless YAML requires it. Quotes are only necessary when the value would otherwise be misinterpreted: booleans (`true`/`false`), numbers, or strings starting with YAML indicator characters. Plain strings, hostnames, entrypoint names, and Traefik rules (including backtick expressions) do not need quotes in block context.
+
 **Other:**
 
 - All services: `restart: unless-stopped`
