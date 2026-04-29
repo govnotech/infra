@@ -273,6 +273,7 @@ def run_launch(services: List[str]) -> None:
         else:
             print(f"{ANSI['red']}FAILED{ANSI['reset']}")
             sys.exit('Cannot create traefik network — aborting.')
+        print()
 
     results: List[Tuple[str, str, str]] = []
     failed: Set[str] = set()
@@ -307,8 +308,9 @@ def run_launch(services: List[str]) -> None:
     bar = '─' * 42
     print()
     print(f"{ANSI['bold']}{bar}{ANSI['reset']}")
-    print(f"{ANSI['bold']}  Launch Report{ANSI['reset']}")
-    print(f"{ANSI['bold']}{bar}{ANSI['reset']}")
+    print()
+    print(f"{ANSI['bold']}Launch Report{ANSI['reset']}")
+    print()
     for svc, status, detail in results:
         if status == 'OK':
             color = ANSI['green']
@@ -320,6 +322,7 @@ def run_launch(services: List[str]) -> None:
         if detail:
             for line in detail.splitlines()[:5]:
                 print(f"                   {ANSI['dim']}{line}{ANSI['reset']}")
+    print()
     print(f"{ANSI['bold']}{bar}{ANSI['reset']}")
 
     n_ok = sum(1 for _, s, _ in results if s == 'OK')
