@@ -23,10 +23,10 @@ All services join the external `traefik` Docker network (created once: `docker n
 ```yaml
 labels:
   traefik.enable: true
-  traefik.http.routers.{name}.rule: "Host(`{subdomain}.${DOMAIN}`)"
-  traefik.http.routers.{name}.entrypoints: "tailscale" # or websecure
+  traefik.http.routers.{name}.rule: Host(`{subdomain}.${DOMAIN}`)
+  traefik.http.routers.{name}.entrypoints: tailscale # or websecure
   traefik.http.routers.{name}.tls: true
-  traefik.http.routers.{name}.tls.certresolver: "lets-encrypt"
+  traefik.http.routers.{name}.tls.certresolver: lets-encrypt
   traefik.http.services.{name}.loadbalancer.server.port: { port }
 ```
 

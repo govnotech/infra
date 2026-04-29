@@ -23,14 +23,14 @@ services:
       - traefik
     labels:
       traefik.enable: true
-      traefik.http.routers.netdata.rule: "Host(`netdata.${DOMAIN}`)"
-      traefik.http.routers.netdata.entrypoints: "tailscale"
+      traefik.http.routers.netdata.rule: Host(`netdata.${DOMAIN}`)
+      traefik.http.routers.netdata.entrypoints: tailscale
       traefik.http.routers.netdata.tls: true
-      traefik.http.routers.netdata.tls.certresolver: "lets-encrypt"
-      traefik.http.routers.netdata.middlewares: "netdata-redirect"
+      traefik.http.routers.netdata.tls.certresolver: lets-encrypt
+      traefik.http.routers.netdata.middlewares: netdata-redirect
       traefik.http.services.netdata.loadbalancer.server.port: 19999
 
       # Netdata v2 shows a Cloud sign-in page at /. Redirect root to /v3 (local dashboard) to skip it.
-      traefik.http.middlewares.netdata-redirect.redirectregex.regex: "^https://[^/]+/?$"
-      traefik.http.middlewares.netdata-redirect.redirectregex.replacement: "https://netdata.${DOMAIN}/v3"
-      traefik.http.middlewares.netdata-redirect.redirectregex.permanent: "true"
+      traefik.http.middlewares.netdata-redirect.redirectregex.regex: ^https://[^/]+/?$
+      traefik.http.middlewares.netdata-redirect.redirectregex.replacement: https://netdata.${DOMAIN}/v3
+      traefik.http.middlewares.netdata-redirect.redirectregex.permanent: true

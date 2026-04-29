@@ -17,8 +17,8 @@ services:
       - traefik
     labels:
       traefik.enable: true
-      traefik.http.routers.dockge.rule: "Host(`dockge.${DOMAIN}`)"
-      traefik.http.routers.dockge.entrypoints: "tailscale"
+      traefik.http.routers.dockge.rule: Host(`dockge.${DOMAIN}`)
+      traefik.http.routers.dockge.entrypoints: tailscale
       traefik.http.routers.dockge.tls: true
-      traefik.http.routers.dockge.tls.certresolver: "lets-encrypt"
+      traefik.http.routers.dockge.tls.certresolver: lets-encrypt
       traefik.http.services.dockge.loadbalancer.server.port: 5001
