@@ -45,8 +45,11 @@ labels:
 
 **YAML quoting** — do not quote values unless YAML requires it. Quotes are only necessary when the value would otherwise be misinterpreted: booleans (`true`/`false`), numbers, or strings starting with YAML indicator characters. Plain strings, hostnames, entrypoint names, and Traefik rules (including backtick expressions) do not need quotes in block context.
 
+**Launcher script** — `./start` in repo root. Interactive TUI (Python 3 + curses, zero dependencies). Manages deploy order and auto-selects transitive dependencies. When adding a new service: add its folder name to `ORDER` and its deps to `DEPS` in `start`.
+
 **Other:**
 
+- **No alignment whitespace** — do not pad code with extra spaces to align values into columns.
 - All services: `restart: unless-stopped`
 - All services: `container_name: {name}` (avoid auto-generated names like `traefik-traefik-1`)
 - `.env.example` in repo root documents all variables across all services

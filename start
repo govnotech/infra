@@ -1,0 +1,363 @@
+#!/usr/bin/env python3
+"""Interactive launcher for the govnotech infra stack."""
+
+import curses
+import os
+import shutil
+import subprocess
+import sys
+from typing import Dict, List, Optional, Set, Tuple
+
+REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+COMPOSE_DIR = os.path.join(REPO_ROOT, 'compose')
+ENV_FILE = os.path.join(REPO_ROOT, '.env')
+
+ORDER: List[str] = [
+    'watchtower',
+    'traefik',
+    'postgres',
+    'dozzle',
+    'netdata',
+    'dockge',
+    'uptime-kuma',
+    'pocketbase',
+]
+
+DEPS: Dict[str, List[str]] = {
+    'watchtower': [],
+    'traefik': [],
+    'postgres': [],
+    'dozzle': ['traefik'],
+    'netdata': ['traefik'],
+    'dockge': ['traefik'],
+    'uptime-kuma': ['traefik'],
+    'pocketbase': ['traefik'],
+}
+
+LABELS: Dict[str, str] = {
+    'watchtower': 'auto-update containers',
+    'traefik': 'reverse proxy, TLS',
+    'postgres': 'shared database',
+    'dozzle': 'container log viewer',
+    'netdata': 'server & container metrics',
+    'dockge': 'compose stack manager',
+    'uptime-kuma': 'uptime monitoring',
+    'pocketbase': 'lightweight BaaS',
+}
+
+ANSI = {
+    'green': '\033[32m',
+    'red': '\033[31m',
+    'yellow': '\033[33m',
+    'bold': '\033[1m',
+    'dim': '\033[2m',
+    'reset': '\033[0m',
+}
+
+# Color pair indices
+CP_NORMAL = 1
+CP_SELECTED = 2
+CP_AUTO = 3
+CP_ERROR = 4
+CP_DIM = 5
+CP_TITLE = 6
+
+
+def preflight_checks() -> None:
+    if sys.version_info < (3, 6):
+        sys.exit('Error: Python 3.6+ is required.')
+    if not os.path.isdir(COMPOSE_DIR):
+        sys.exit('Error: Must be run from the repo root (compose/ directory not found).')
+    if not os.path.isfile(ENV_FILE):
+        sys.exit('Error: .env not found. Copy .env.example to .env and fill in the values.')
+    if not shutil.which('docker'):
+        sys.exit("Error: 'docker' not found in PATH.")
+    result = subprocess.run(['docker', 'info'], capture_output=True)
+    if result.returncode != 0:
+        sys.exit('Error: Docker daemon is not running.')
+
+
+def compute_state(
+    explicit: Set[str],
+) -> Tuple[Set[str], Dict[str, List[str]]]:
+    """BFS from explicit services, collect transitive deps and their reasons."""
+    auto: Set[str] = set()
+    reasons: Dict[str, List[str]] = {}
+
+    frontier = list(explicit)
+    visited = set(explicit)
+    while frontier:
+        svc = frontier.pop()
+        for dep in DEPS.get(svc, []):
+            reasons.setdefault(dep, []).append(svc)
+            if dep not in visited:
+                auto.add(dep)
+                visited.add(dep)
+                frontier.append(dep)
+
+    auto -= explicit
+    return auto, reasons
+
+
+def get_launch_order(explicit: Set[str], auto: Set[str]) -> List[str]:
+    selected = explicit | auto
+    return [s for s in ORDER if s in selected]
+
+
+def draw_screen(
+    stdscr: 'curses._CursesWindow',
+    cursor: int,
+    explicit: Set[str],
+    auto: Set[str],
+    reasons: Dict[str, List[str]],
+    status_msg: str,
+) -> None:
+    stdscr.erase()
+    h, w = stdscr.getmaxyx()
+
+    title = 'Infrastructure Launcher'
+    try:
+        stdscr.addstr(0, max(0, (w - len(title)) // 2), title,
+                      curses.color_pair(CP_TITLE) | curses.A_BOLD)
+    except curses.error:
+        pass
+
+    hints = '↑/↓ navigate   SPACE toggle   A all   ENTER launch   Q quit'
+    try:
+        stdscr.addstr(2, 2, hints[:w - 3], curses.color_pair(CP_DIM))
+    except curses.error:
+        pass
+
+    sep = '─' * max(0, w - 4)
+    try:
+        stdscr.addstr(3, 2, sep, curses.color_pair(CP_DIM))
+    except curses.error:
+        pass
+
+    for i, svc in enumerate(ORDER):
+        row = 5 + i
+        if row >= h - 3:
+            break
+
+        is_cursor = (i == cursor)
+        attr = curses.A_REVERSE if is_cursor else 0
+
+        if svc in explicit:
+            checkbox = '[X]'
+            color = curses.color_pair(CP_SELECTED)
+        elif svc in auto:
+            checkbox = '[~]'
+            color = curses.color_pair(CP_AUTO)
+        else:
+            checkbox = '[ ]'
+            color = curses.color_pair(CP_NORMAL)
+
+        cursor_marker = '>' if is_cursor else ' '
+        label = LABELS.get(svc, '')
+        line = f' {cursor_marker} {checkbox} {svc:<14}  {label}'
+
+        try:
+            stdscr.addstr(row, 0, line[:w - 1], color | attr)
+        except curses.error:
+            pass
+
+        if svc in auto and reasons.get(svc):
+            dep_text = 'dep of: ' + ', '.join(reasons[svc])
+            col = 38
+            if col < w - len(dep_text) - 1:
+                try:
+                    stdscr.addstr(row, col, dep_text[:w - col - 1],
+                                  curses.color_pair(CP_DIM) | attr)
+                except curses.error:
+                    pass
+
+    sep_row = 5 + len(ORDER) + 1
+    if sep_row < h - 1:
+        try:
+            stdscr.addstr(sep_row, 2, sep, curses.color_pair(CP_DIM))
+        except curses.error:
+            pass
+
+    n_explicit = len(explicit)
+    n_auto = len(auto)
+    n_total = n_explicit + n_auto
+    if status_msg and sep_row + 2 < h:
+        try:
+            stdscr.addstr(sep_row + 2, 2, status_msg[:w - 3], curses.color_pair(CP_ERROR))
+        except curses.error:
+            pass
+    elif sep_row + 2 < h:
+        if n_total > 0:
+            summary = f'{n_total} service{"s" if n_total != 1 else ""} selected'
+            if n_auto > 0:
+                summary += f'  ({n_explicit} explicit + {n_auto} auto)'
+        else:
+            summary = 'No services selected'
+        try:
+            stdscr.addstr(sep_row + 2, 2, summary[:w - 3], curses.color_pair(CP_NORMAL))
+        except curses.error:
+            pass
+
+    stdscr.refresh()
+
+
+def run_tui(stdscr: 'curses._CursesWindow') -> Optional[List[str]]:
+    curses.curs_set(0)
+    stdscr.keypad(True)
+    curses.start_color()
+    curses.use_default_colors()
+
+    curses.init_pair(CP_NORMAL,   curses.COLOR_WHITE,  -1)
+    curses.init_pair(CP_SELECTED, curses.COLOR_GREEN,  -1)
+    curses.init_pair(CP_AUTO,     curses.COLOR_YELLOW, -1)
+    curses.init_pair(CP_ERROR,    curses.COLOR_RED,    -1)
+    curses.init_pair(CP_DIM,      curses.COLOR_WHITE,  -1)
+    curses.init_pair(CP_TITLE,    curses.COLOR_CYAN,   -1)
+
+    h, w = stdscr.getmaxyx()
+    if h < 24 or w < 60:
+        raise ValueError(f'Terminal too small ({h}x{w}); need at least 24x60.')
+
+    cursor = 0
+    explicit: Set[str] = set()
+    status_msg = ''
+
+    while True:
+        auto, reasons = compute_state(explicit)
+        draw_screen(stdscr, cursor, explicit, auto, reasons, status_msg)
+        status_msg = ''
+
+        key = stdscr.getch()
+
+        if key in (curses.KEY_UP, ord('k')):
+            cursor = max(0, cursor - 1)
+        elif key in (curses.KEY_DOWN, ord('j')):
+            cursor = min(len(ORDER) - 1, cursor + 1)
+        elif key == ord(' '):
+            svc = ORDER[cursor]
+            if svc in explicit:
+                explicit.discard(svc)
+            else:
+                explicit.add(svc)
+        elif key in (ord('a'), ord('A')):
+            if len(explicit) == len(ORDER):
+                explicit.clear()
+            else:
+                explicit = set(ORDER)
+        elif key in (10, 13, curses.KEY_ENTER):
+            if not explicit and not auto:
+                status_msg = 'Select at least one service (SPACE to toggle)'
+            else:
+                return get_launch_order(explicit, auto)
+        elif key in (ord('q'), ord('Q'), 27):
+            return None
+
+
+def ensure_network(name: str) -> bool:
+    check = subprocess.run(['docker', 'network', 'inspect', name], capture_output=True)
+    if check.returncode == 0:
+        return True
+    result = subprocess.run(['docker', 'network', 'create', name], capture_output=True, text=True)
+    return result.returncode == 0
+
+
+def run_launch(services: List[str]) -> None:
+    print()
+    print(f"{ANSI['bold']}Launching {len(services)} service(s)...{ANSI['reset']}")
+    print()
+
+    if 'traefik' in services:
+        print("  Ensuring 'traefik' network exists... ", end='', flush=True)
+        if ensure_network('traefik'):
+            print(f"{ANSI['green']}OK{ANSI['reset']}")
+        else:
+            print(f"{ANSI['red']}FAILED{ANSI['reset']}")
+            sys.exit('Cannot create traefik network — aborting.')
+
+    results: List[Tuple[str, str, str]] = []
+    failed: Set[str] = set()
+
+    for i, svc in enumerate(services, 1):
+        dep_failures = [d for d in DEPS.get(svc, []) if d in failed]
+        if dep_failures:
+            results.append((svc, 'SKIPPED', f"dep failed: {', '.join(dep_failures)}"))
+            print(f"  [{i}/{len(services)}] {svc:<14} "
+                  f"{ANSI['yellow']}SKIPPED{ANSI['reset']}"
+                  f"  (dep failed: {', '.join(dep_failures)})")
+            continue
+
+        cmd = [
+            'docker', 'compose',
+            '--env-file', ENV_FILE,
+            '-f', os.path.join(COMPOSE_DIR, svc, 'compose.yml'),
+            'up', '-d',
+        ]
+        print(f"  [{i}/{len(services)}] {svc:<14} ", end='', flush=True)
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT)
+
+        if proc.returncode == 0:
+            print(f"{ANSI['green']}OK{ANSI['reset']}")
+            results.append((svc, 'OK', ''))
+        else:
+            print(f"{ANSI['red']}FAILED{ANSI['reset']}")
+            failed.add(svc)
+            detail = (proc.stderr or proc.stdout).strip()
+            results.append((svc, 'FAILED', detail))
+
+    bar = '─' * 42
+    print()
+    print(f"{ANSI['bold']}{bar}{ANSI['reset']}")
+    print(f"{ANSI['bold']}  Launch Report{ANSI['reset']}")
+    print(f"{ANSI['bold']}{bar}{ANSI['reset']}")
+    for svc, status, detail in results:
+        if status == 'OK':
+            color = ANSI['green']
+        elif status == 'FAILED':
+            color = ANSI['red']
+        else:
+            color = ANSI['yellow']
+        print(f"  {svc:<16} {color}{status}{ANSI['reset']}")
+        if detail:
+            for line in detail.splitlines()[:5]:
+                print(f"                   {ANSI['dim']}{line}{ANSI['reset']}")
+    print(f"{ANSI['bold']}{bar}{ANSI['reset']}")
+
+    n_ok = sum(1 for _, s, _ in results if s == 'OK')
+    n_fail = sum(1 for _, s, _ in results if s == 'FAILED')
+    n_skip = sum(1 for _, s, _ in results if s == 'SKIPPED')
+    parts = [f"{ANSI['green']}{n_ok} started{ANSI['reset']}"]
+    if n_fail:
+        parts.append(f"{ANSI['red']}{n_fail} failed{ANSI['reset']}")
+    if n_skip:
+        parts.append(f"{ANSI['yellow']}{n_skip} skipped{ANSI['reset']}")
+    print(f"\n  {', '.join(parts)}")
+    print()
+
+    if n_fail:
+        sys.exit(1)
+
+
+def main() -> None:
+    preflight_checks()
+
+    try:
+        services = curses.wrapper(run_tui)
+    except ValueError as exc:
+        sys.exit(f'Error: {exc}')
+    except KeyboardInterrupt:
+        print('\nAborted.')
+        sys.exit(0)
+
+    if services is None:
+        print('No services selected. Exiting.')
+        sys.exit(0)
+
+    try:
+        run_launch(services)
+    except KeyboardInterrupt:
+        print(f"\n{ANSI['yellow']}Interrupted. Already-started containers remain running.{ANSI['reset']}")
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

@@ -32,11 +32,20 @@
    cp .env.example .env
    ```
 
-3. Run each service from the repo root with `--env-file .env` (Docker Compose v2 resolves `.env` relative to the compose file, not cwd):
+3. Launch services with the interactive launcher:
+
+   ```bash
+   ./start
+   ```
+
+   Use `↑`/`↓` to navigate, `SPACE` to select, `ENTER` to launch. Dependencies are resolved automatically — selecting n8n, for example, auto-selects Traefik and PostgreSQL.
+
+   **Manual alternative** — run each service directly from the repo root (`--env-file .env` is required because Docker Compose v2 resolves `.env` relative to the compose file, not cwd):
 
    ```bash
    docker compose --env-file .env -f compose/watchtower/compose.yml up -d
    docker compose --env-file .env -f compose/traefik/compose.yml up -d
+   # …
    ```
 
 **Image versioning:** Critical services (PostgreSQL, Redis) are pinned to a major version (e.g. `postgres:16`) — [Watchtower](#watchtower) updates patch/minor releases but never jumps to a new major. Non-critical services (Dozzle, Watchtower itself) use `latest`.
