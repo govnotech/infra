@@ -1,0 +1,20 @@
+networks:
+  traefik:
+    external: true
+
+services:
+  hub:
+    container_name: hub
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    networks:
+      - traefik
+    labels:
+      traefik.enable: true
+      traefik.http.routers.hub.rule: Host(`hub.${DOMAIN}`)
+      traefik.http.routers.hub.entrypoints: tailscale
+      traefik.http.routers.hub.tls: true
+      traefik.http.routers.hub.tls.certresolver: lets-encrypt
+      traefik.http.services.hub.loadbalancer.server.port: 80

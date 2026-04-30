@@ -21,6 +21,7 @@ ORDER: List[str] = [
     'dockge',
     'uptime-kuma',
     'pocketbase',
+    'hub',
 ]
 
 DEPS: Dict[str, List[str]] = {
@@ -32,6 +33,7 @@ DEPS: Dict[str, List[str]] = {
     'dockge': ['traefik'],
     'uptime-kuma': ['traefik'],
     'pocketbase': ['traefik'],
+    'hub': ['traefik'],
 }
 
 LABELS: Dict[str, str] = {
@@ -43,6 +45,7 @@ LABELS: Dict[str, str] = {
     'dockge': 'compose stack manager',
     'uptime-kuma': 'uptime monitoring',
     'pocketbase': 'lightweight BaaS',
+    'hub': 'services dashboard',
 }
 
 ANSI = {
@@ -207,12 +210,12 @@ def run_tui(stdscr: 'curses._CursesWindow') -> Optional[List[str]]:
     curses.start_color()
     curses.use_default_colors()
 
-    curses.init_pair(CP_NORMAL,   curses.COLOR_WHITE,  -1)
-    curses.init_pair(CP_SELECTED, curses.COLOR_GREEN,  -1)
-    curses.init_pair(CP_AUTO,     curses.COLOR_YELLOW, -1)
-    curses.init_pair(CP_ERROR,    curses.COLOR_RED,    -1)
-    curses.init_pair(CP_DIM,      curses.COLOR_WHITE,  -1)
-    curses.init_pair(CP_TITLE,    curses.COLOR_CYAN,   -1)
+    curses.init_pair(CP_NORMAL, curses.COLOR_WHITE, -1)
+    curses.init_pair(CP_SELECTED, curses.COLOR_GREEN, -1)
+    curses.init_pair(CP_AUTO, curses.COLOR_YELLOW, -1)
+    curses.init_pair(CP_ERROR, curses.COLOR_RED, -1)
+    curses.init_pair(CP_DIM, curses.COLOR_WHITE, -1)
+    curses.init_pair(CP_TITLE, curses.COLOR_CYAN, -1)
 
     h, w = stdscr.getmaxyx()
     if h < 24 or w < 60:
