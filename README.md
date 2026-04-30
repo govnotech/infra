@@ -2,6 +2,8 @@
 
 > Minimum specs: **4 vCPU / 8 GB RAM / 160 GB NVMe SSD**, Ubuntu 22.04 LTS or Debian 12.
 
+![Hub dashboard](screenshot.webp)
+
 ## Table of Contents
 
 - [Quick Start](#quick-start)
