@@ -17,6 +17,7 @@
   - [Netdata](#netdata)
   - [Dockge](#dockge)
   - [Uptime Kuma](#uptime-kuma)
+  - [Hub](#hub)
 - [Layer 2 — Services](#layer-2--services)
   - [PocketBase](#pocketbase)
 - [Layer 3 — Applications](#layer-3--applications)
@@ -213,6 +214,18 @@ Stacks are stored in `compose/dockge/stacks/` — no configuration needed.
 **Deploy:** [`compose/uptime-kuma/compose.yml`](compose/uptime-kuma/compose.yml)
 
 Uptime monitoring for external URLs. Sends alerts via Telegram or email when a service goes down.
+
+### Hub
+
+`Layer 1` · [GitHub](https://github.com/nginx/nginx) · [`compose/hub/compose.yml`](compose/hub/compose.yml)
+
+**Prerequisites:** [Traefik](#traefik) (private UI).
+
+**Deploy:** [`compose/hub/compose.yml`](compose/hub/compose.yml)
+
+Private homepage listing all self-hosted services with links. Served by nginx:alpine from a single static HTML file — no build step, no external dependencies. The page derives the base domain from `window.location.hostname` at runtime, so no env vars are needed beyond `DOMAIN` (already required by Traefik).
+
+All service URLs are displayed as `{subdomain}.DOMAIN` and open in the same tab on click. The service list is hardcoded in the `layer1` / `layer2` arrays inside `compose/hub/index.html` — update it manually when adding or removing a service.
 
 ---
 

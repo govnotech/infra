@@ -62,7 +62,7 @@ When adding or changing a service — always update `README.md`, `CLAUDE.md`, an
 - `README.md` — full setup details, key env vars, prerequisites
 - `CLAUDE.md` — update the current stack table and any changed conventions
 - `.env.example` — add any new env vars for the service
-- `compose/hub/index.html` — if the service has a web UI, add it to the `layer1` or `layer2` array in the script block
+- `compose/hub/public/index.html` — if the service has a web UI, add it to the `layer1` or `layer2` array in the script block
 
 When introducing a new pattern or convention (naming, file structure, gitignore approach, etc.) — add it to `CLAUDE.md` immediately.
 
