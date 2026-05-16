@@ -21,6 +21,7 @@
   - [Uptime Kuma](#uptime-kuma)
   - [Hub](#hub)
 - [Layer 2 — Services](#layer-2--services)
+  - [OpenPanel](#openpanel)
   - [PocketBase](#pocketbase)
 - [Layer 3 — Applications](#layer-3--applications)
 
@@ -64,6 +65,7 @@ Three access tiers. Each service belongs to exactly one.
 | Service | Tier | How |
 | ----------------------------- | ----------------- | -------------------------------------------------------- |
 | SaaS front-ends, public sites | Public (proxied) | Cloudflare orange cloud → Traefik |
+| OpenPanel event ingestion | Public (proxied) | Cloudflare orange cloud → Traefik |
 | API backends | Public (DNS-only) | Cloudflare grey cloud → Traefik |
 | All admin / dashboard UIs | Private | Cloudflare grey cloud → Traefik (`tailscale` entrypoint) |
 
@@ -234,6 +236,34 @@ All service URLs are displayed as `{subdomain}.DOMAIN` and open in the same tab 
 ## Layer 2 — Services
 
 _Sorted alphabetically._
+
+### OpenPanel
+
+`Layer 2` · [Docs](https://openpanel.dev/docs) · [GitHub](https://github.com/Openpanel-dev/openpanel)
+
+**Prerequisites:** [Traefik](#traefik) (event ingestion), [Tailscale](#tailscale) (dashboard).
+
+**Deploy:** [`compose/openpanel/compose.yml`](compose/openpanel/compose.yml)
+
+Open-source product & web analytics — funnels, retention, user journeys, event tracking. Mixpanel/PostHog alternative. Bundles its own Postgres, Redis (BullMQ queue) and ClickHouse — not connected to the shared instances because OpenPanel pins exact versions and runs Redis with `noeviction` for job durability.
+
+Single host `op.DOMAIN`:
+
+- Dashboard — private, tailscale entrypoint only.
+- `/api` (event ingestion) — public, both `websecure` and `tailscale` entrypoints. Traefik strips the `/api` prefix before forwarding to `op-api`.
+
+**Required in `.env`:** `OPENPANEL_COOKIE_SECRET`, `OPENPANEL_ALLOW_REGISTRATION` — see [`.env.example`](.env.example). Generate the cookie secret:
+
+```bash
+openssl rand -hex 32
+```
+
+**Bootstrap (one-time):**
+
+1. Start with `OPENPANEL_ALLOW_REGISTRATION=true`, open `https://op.DOMAIN` from within the tailnet, create the first account.
+2. Set `OPENPANEL_ALLOW_REGISTRATION=false` in `.env` and restart openpanel (email-based invitations are disabled — only existing accounts can sign in).
+
+**DNS:** `op.DOMAIN` needs an `A` record on `TRAEFIK_TAILSCALE_IP` (grey cloud) for the dashboard. For public event ingestion from browsers, add a second `A` record on `TRAEFIK_PUBLIC_IP` (orange cloud) — Traefik picks the right entrypoint automatically.
 
 ### PocketBase
 

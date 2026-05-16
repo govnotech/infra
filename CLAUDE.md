@@ -34,6 +34,7 @@ labels:
 
 - Critical services (Postgres, Redis, Traefik) → pin to major version (`postgres:16`, `traefik:v3`)
 - Non-critical → `latest` is fine
+- Embedded databases that ship as part of an upstream service's bundled compose (e.g. OpenPanel's `op-db`, `op-kv`, `op-ch`) → pin to the exact version the upstream tests against (`postgres:14-alpine`, `redis:7.2.5-alpine`, `clickhouse/clickhouse-server:25.10.2.65`). Their migrations target a specific version — drift can break the upstream service.
 - [Watchtower](compose/watchtower/compose.yml) handles minor/patch updates; never jumps major versions
 
 **Docker socket:**
@@ -45,7 +46,7 @@ labels:
 
 **YAML quoting** — do not quote values unless YAML requires it. Quotes are only necessary when the value would otherwise be misinterpreted: booleans (`true`/`false`), numbers, or strings starting with YAML indicator characters. Plain strings, hostnames, entrypoint names, and Traefik rules (including backtick expressions) do not need quotes in block context.
 
-**Launcher script** — `./start` in repo root. Interactive TUI (Python 3 + curses, zero dependencies). Manages deploy order and auto-selects transitive dependencies. When adding a new service: add its folder name to `ORDER` and its deps to `DEPS` in `start`.
+**Launcher script** — `./start` in repo root. Interactive TUI (Python 3 + curses, zero dependencies). Manages deploy order and auto-selects transitive dependencies. When adding a new service: add it to `ORDER`, `DEPS`, and `LABELS` in `start` — all three should list services in the same order (Layer 1 by deploy priority, Layer 2 alphabetically).
 
 **Other:**
 
@@ -79,5 +80,6 @@ Layer 1 order is intentional — it reflects recommended deployment sequence (de
 | Netdata | `netdata.DOMAIN` | tailscale | Server and container metrics |
 | Dockge | `dockge.DOMAIN` | tailscale | Compose stack manager |
 | Uptime Kuma | `uptime.DOMAIN` | tailscale | Uptime monitoring |
+| OpenPanel | `op.DOMAIN` (UI + `/api`) | tailscale (UI) + websecure (`/api`) | Product analytics; embedded Postgres 14 + ClickHouse + Redis (BullMQ, `noeviction`) |
 | PocketBase | `pb.DOMAIN` | tailscale (admin UI) + websecure (API) | Lightweight BaaS, SQLite, admin UI blocked on public |
 | Hub | `hub.DOMAIN` | tailscale | Static services dashboard, domain derived from URL at runtime |

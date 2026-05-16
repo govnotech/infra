@@ -20,6 +20,7 @@ ORDER: List[str] = [
     'netdata',
     'dockge',
     'uptime-kuma',
+    'openpanel',
     'pocketbase',
     'hub',
 ]
@@ -32,6 +33,7 @@ DEPS: Dict[str, List[str]] = {
     'netdata': ['traefik'],
     'dockge': ['traefik'],
     'uptime-kuma': ['traefik'],
+    'openpanel': ['traefik'],
     'pocketbase': ['traefik'],
     'hub': ['traefik'],
 }
@@ -44,6 +46,7 @@ LABELS: Dict[str, str] = {
     'netdata': 'server & container metrics',
     'dockge': 'compose stack manager',
     'uptime-kuma': 'uptime monitoring',
+    'openpanel': 'product analytics',
     'pocketbase': 'lightweight BaaS',
     'hub': 'services dashboard',
 }

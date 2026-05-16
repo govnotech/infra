@@ -1,0 +1,164 @@
+networks:
+  traefik:
+    external: true
+  openpanel:
+    name: openpanel
+
+x-app-env: &app-env
+  NODE_ENV: production
+  SELF_HOSTED: true
+  BATCH_SIZE: 5000
+  BATCH_INTERVAL: 10000
+  ALLOW_REGISTRATION: ${OPENPANEL_ALLOW_REGISTRATION}
+  ALLOW_INVITATION: false
+  REDIS_URL: redis://op-kv:6379
+  CLICKHOUSE_URL: http://op-ch:8123/openpanel
+  DATABASE_URL: postgresql://postgres:postgres@op-db:5432/postgres
+  DATABASE_URL_DIRECT: postgresql://postgres:postgres@op-db:5432/postgres
+  DASHBOARD_URL: https://op.${DOMAIN}
+  API_URL: https://op.${DOMAIN}/api
+  COOKIE_SECRET: ${OPENPANEL_COOKIE_SECRET}
+
+services:
+  op-db:
+    container_name: op-db
+    image: postgres:14-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - openpanel
+
+  op-kv:
+    container_name: op-kv
+    image: redis:7.2.5-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - ./data/kv:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - openpanel
+
+  op-ch:
+    container_name: op-ch
+    image: clickhouse/clickhouse-server:25.10.2.65
+    restart: unless-stopped
+    mem_limit: 1g
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: 1
+      CLICKHOUSE_MAX_SERVER_MEMORY_USAGE_TO_RAM_RATIO: 0.5
+    volumes:
+      - ./data/ch:/var/lib/clickhouse
+      - ./data/ch-logs:/var/log/clickhouse-server
+      - ./clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/op-config.xml:ro
+      - ./clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/op-user-config.xml:ro
+      - ./clickhouse/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - openpanel
+
+  op-api:
+    container_name: op-api
+    image: lindesvard/openpanel-api:2
+    restart: unless-stopped
+    command: >
+      sh -c "
+        echo 'Running migrations...'
+        CI=true pnpm -r run migrate:deploy
+        pnpm start
+      "
+    environment:
+      <<: *app-env
+    depends_on:
+      op-db:
+        condition: service_healthy
+      op-kv:
+        condition: service_healthy
+      op-ch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/healthcheck || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - openpanel
+      - traefik
+    labels:
+      traefik.enable: true
+      traefik.docker.network: traefik
+      traefik.http.services.op-api.loadbalancer.server.port: 3000
+
+      traefik.http.middlewares.op-api-strip.stripprefix.prefixes: /api
+
+      traefik.http.routers.op-api.rule: Host(`op.${DOMAIN}`) && PathPrefix(`/api`)
+      traefik.http.routers.op-api.entrypoints: tailscale,websecure
+      traefik.http.routers.op-api.tls: true
+      traefik.http.routers.op-api.tls.certresolver: lets-encrypt
+      traefik.http.routers.op-api.middlewares: op-api-strip
+
+  op-dashboard:
+    container_name: op-dashboard
+    image: lindesvard/openpanel-dashboard:2
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    depends_on:
+      op-api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:3000/api/healthcheck || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - openpanel
+      - traefik
+    labels:
+      traefik.enable: true
+      traefik.docker.network: traefik
+      traefik.http.services.op-dashboard.loadbalancer.server.port: 3000
+
+      traefik.http.routers.op-dashboard.rule: Host(`op.${DOMAIN}`)
+      traefik.http.routers.op-dashboard.entrypoints: tailscale
+      traefik.http.routers.op-dashboard.tls: true
+      traefik.http.routers.op-dashboard.tls.certresolver: lets-encrypt
+
+  op-worker:
+    container_name: op-worker
+    image: lindesvard/openpanel-worker:2
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    depends_on:
+      op-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/healthcheck || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - openpanel
