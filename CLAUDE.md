@@ -80,6 +80,6 @@ Layer 1 order is intentional — it reflects recommended deployment sequence (de
 | Netdata | `netdata.DOMAIN` | tailscale | Server and container metrics |
 | Dockge | `dockge.DOMAIN` | tailscale | Compose stack manager |
 | Uptime Kuma | `uptime.DOMAIN` | tailscale | Uptime monitoring |
+| Hub | `hub.DOMAIN` | tailscale | Static services dashboard, domain derived from URL at runtime |
 | OpenPanel | `op.DOMAIN` (UI + `/api`) | tailscale (UI) + websecure (`/api`) | Product analytics; embedded Postgres 14 + ClickHouse + Redis (BullMQ, `noeviction`) |
 | PocketBase | `pb.DOMAIN` | tailscale (admin UI) + websecure (API) | Lightweight BaaS, SQLite, admin UI blocked on public |
-| Hub | `hub.DOMAIN` | tailscale | Static services dashboard, domain derived from URL at runtime |
