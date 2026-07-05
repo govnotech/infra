@@ -32,12 +32,12 @@ Starting from a bare server? Do the [initial host setup](#appendix--fresh-server
 
 ## Quick Start
 
-1. Clone the repository into `/opt/infra` on the server. `/opt` is owned by `root`, so create the directory and hand it to your admin user first — then everything below runs without `sudo`:
+1. Clone the repository into `/opt/infra` on the server (the clone uses SSH — set up the [SSH key](#9-github-ssh-key) first). `/opt` is owned by `root`, so create the directory and hand it to your admin user first — then everything below runs without `sudo`:
 
    ```bash
    sudo mkdir -p /opt/infra
    sudo chown $USER:$USER /opt/infra
-   git clone https://github.com/govnotech/infra.git /opt/infra
+   git clone git@github.com:govnotech/infra.git /opt/infra
    cd /opt/infra
    ```
 
@@ -452,6 +452,41 @@ Log out and back in for the group to take effect, then verify:
 ```bash
 docker compose version
 docker run --rm hello-world
+```
+
+### 9. GitHub SSH key
+
+The [Quick Start](#quick-start) clones over SSH. Use one **account-level key** — it reaches every repo you own (including [Layer 3](#layer-3--applications) apps) with no per-repo setup.
+
+```bash
+sudo apt install -y git
+ssh-keygen -t ed25519 -C "govno-01" -f ~/.ssh/github -N ""
+```
+
+A non-default filename needs a `~/.ssh/config` entry so SSH uses it. Open it:
+
+```bash
+nano ~/.ssh/config
+```
+
+and add:
+
+```txt
+Host github.com
+  IdentityFile ~/.ssh/github
+  IdentitiesOnly yes
+```
+
+Print the public key, copy it, and add it at GitHub → **Settings → SSH and GPG keys → New SSH key**:
+
+```bash
+cat ~/.ssh/github.pub
+```
+
+Verify:
+
+```bash
+ssh -T git@github.com # → "Hi <username>! You've successfully authenticated…"
 ```
 
 The server is now ready for the [Quick Start](#quick-start) above.
