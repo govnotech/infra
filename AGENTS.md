@@ -14,6 +14,8 @@ Two-tier access model via Traefik:
 - **Public** (`websecure` entrypoint, `TRAEFIK_PUBLIC_IP:443`) — Cloudflare orange/grey cloud → Traefik
 - **Private** (`tailscale` entrypoint, `TRAEFIK_TAILSCALE_IP:443`) — DNS points to Tailscale IP (Cloudflare grey), only reachable within tailnet
 
+DNS is wildcard-first: `*.${DOMAIN}` → `TRAEFIK_TAILSCALE_IP` (grey) covers every private host with no per-service record. Public hosts get an explicit A record on `TRAEFIK_PUBLIC_IP` that overrides the wildcard (a more-specific record always wins) — see **Public vs private hostnames**.
+
 All services join the external `traefik` Docker network (created once: `docker network create traefik`).
 
 ## Conventions
@@ -29,6 +31,8 @@ labels:
   traefik.http.routers.{name}.tls.certresolver: lets-encrypt
   traefik.http.services.{name}.loadbalancer.server.port: { port }
 ```
+
+**Public vs private hostnames** — a service's private UI/admin/editor lives on its **base** subdomain (`op`, `pb`, `n8n`), which the `*.${DOMAIN}` wildcard resolves to the Tailscale IP — no manual DNS. Anything that must face the public internet gets its **own dedicated subdomain** (`op-api`, `pb-api`, `hooks`) routed through `websecure`. A single hostname can't be both public and private (one A record → one IP), so never put a public router and a private router on the same host — split them across two hosts instead. The dedicated public subdomains are exactly the records added to Cloudflare by hand; `./start` prints the list for whatever was deployed (`PUBLIC_RECORDS` in [`start`](start)). When a new service exposes something publicly, add its public host to `PUBLIC_RECORDS`.
 
 **Image versioning:**
 
@@ -89,7 +93,7 @@ Layer 1 order is intentional — it reflects recommended deployment sequence (de
 | Restic | — | — | Encrypted incremental backups |
 | Hub | `hub.DOMAIN` | tailscale | Static services dashboard, domain derived from URL at runtime |
 | n8n | `n8n.DOMAIN` (editor) · `hooks.DOMAIN` (webhooks) | tailscale + websecure | Workflow automation, AI agents |
-| OpenPanel | `op.DOMAIN` (UI + `/api`) | tailscale (UI) + websecure (`/api`) | Product analytics; embedded Postgres 14 + ClickHouse + Redis (BullMQ, `noeviction`) |
-| PocketBase | `pb.DOMAIN` | tailscale (admin UI) + websecure (API) | Lightweight BaaS, SQLite, admin UI blocked on public |
+| OpenPanel | `op.DOMAIN` (UI) · `op-api.DOMAIN` (ingestion) | tailscale (UI) + websecure (ingestion) | Product analytics; embedded Postgres 14 + ClickHouse + Redis (BullMQ, `noeviction`) |
+| PocketBase | `pb.DOMAIN` (admin) · `pb-api.DOMAIN` (API) | tailscale (admin UI) + websecure (public API) | Lightweight BaaS, SQLite, admin on the wildcard-private base host |
 
 Services documented but not yet composed: Bugsink, CloudBeaver, Hoppscotch, Penpot, Umami.

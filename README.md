@@ -78,6 +78,7 @@ Three access tiers. Each service belongs to exactly one.
 | Service | Tier | How |
 | ----------------------------- | ----------------- | -------------------------------------------------------- |
 | SaaS front-ends, public sites | Public (proxied) | Cloudflare orange cloud → Traefik |
+| PocketBase API | Public (proxied) | Cloudflare orange cloud → Traefik |
 | OpenPanel event ingestion | Public (proxied) | Cloudflare orange cloud → Traefik |
 | API backends | Public (DNS-only) | Cloudflare grey cloud → Traefik |
 | All admin / dashboard UIs | Private | Cloudflare grey cloud → Traefik (`tailscale` entrypoint) |
@@ -260,10 +261,10 @@ _Sorted alphabetically._
 
 Open-source product & web analytics — funnels, retention, user journeys, event tracking. Mixpanel/PostHog alternative. Bundles its own Postgres, Redis (BullMQ queue) and ClickHouse — not connected to the shared instances because OpenPanel pins exact versions and runs Redis with `noeviction` for job durability.
 
-Single host `op.DOMAIN`:
+Two hosts:
 
-- Dashboard — private, tailscale entrypoint only.
-- `/api` (event ingestion) — public, both `websecure` and `tailscale` entrypoints. Traefik strips the `/api` prefix before forwarding to `op-api`.
+- `op.DOMAIN` — dashboard, private, tailscale entrypoint only (covered by the `*.DOMAIN` wildcard).
+- `op-api.DOMAIN` — event ingestion, public, both `websecure` and `tailscale` entrypoints. `API_URL` points browsers here.
 
 **Required in `.env`:** `OPENPANEL_COOKIE_SECRET`, `OPENPANEL_ALLOW_REGISTRATION` — see [`.env.example`](.env.example). Generate the cookie secret:
 
@@ -276,7 +277,7 @@ openssl rand -hex 32
 1. Start with `OPENPANEL_ALLOW_REGISTRATION=true`, open `https://op.DOMAIN` from within the tailnet, create the first account.
 2. Set `OPENPANEL_ALLOW_REGISTRATION=false` in `.env` and restart openpanel (email-based invitations are disabled — only existing accounts can sign in).
 
-**DNS:** `op.DOMAIN` needs an `A` record on `TRAEFIK_TAILSCALE_IP` (grey cloud) for the dashboard. For public event ingestion from browsers, add a second `A` record on `TRAEFIK_PUBLIC_IP` (orange cloud) — Traefik picks the right entrypoint automatically.
+**DNS:** the dashboard (`op.DOMAIN`) is private — the `*.DOMAIN` wildcard → `TRAEFIK_TAILSCALE_IP` (grey cloud) already covers it, no manual record. Public event ingestion lives on its own host `op-api.DOMAIN` — add an `A` record on `TRAEFIK_PUBLIC_IP` (orange cloud). `./start` prints the exact record after deploy.
 
 ### PocketBase
 
@@ -287,6 +288,8 @@ openssl rand -hex 32
 **Deploy:** [`compose/pocketbase/compose.yml`](compose/pocketbase/compose.yml)
 
 Lightweight BaaS: SQLite, built-in auth, realtime subscriptions, file storage, admin UI. Single binary, ~30 MB RAM. Use for MVPs and small projects.
+
+**Hosts:** admin UI on `pb.DOMAIN` — private, covered by the `*.DOMAIN` wildcard (Tailscale), no manual record. Public API on its own host `pb-api.DOMAIN` — add an `A` record on `TRAEFIK_PUBLIC_IP` (orange cloud); the admin path (`/_/`) stays blocked there. `./start` prints the record after deploy.
 
 ---
 
