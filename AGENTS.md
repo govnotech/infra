@@ -37,6 +37,8 @@ labels:
 - Embedded databases that ship as part of an upstream service's bundled compose (e.g. OpenPanel's `op-db`, `op-kv`, `op-ch`) → pin to the exact version the upstream tests against (`postgres:14-alpine`, `redis:7.2.5-alpine`, `clickhouse/clickhouse-server:25.10.2.65`). Their migrations target a specific version — drift can break the upstream service.
 - [Watchtower](compose/watchtower/compose.yml) handles minor/patch updates; never jumps major versions
 
+**Memory limits** — every service carries a `mem_limit` (Compose v2 short form), placed right after `restart:`. It's a ceiling, not a reservation: a container consumes only what it needs, so the sum of ceilings intentionally overcommits the 8 GB box — typical concurrent usage fits with page-cache headroom, and pods that spike are contained by per-cgroup OOM (killing the offender, not a random victim) with [swap](README.md#7-hostname-timezone-swap) as the transient-spike backstop. Size by profile: light Go/nginx/Rust `128m`–`256m`, Node apps `384m`–`512m`, shared databases `1g`, ingress (Traefik) `384m`. Never set `memswap_limit == mem_limit` on a database — that forbids swap inside the container and turns a legitimate query spike into an instant kill.
+
 **Docker socket:**
 
 - Read-only (`:ro`) for monitoring tools
@@ -52,6 +54,7 @@ labels:
 
 - **No alignment whitespace** — do not pad code with extra spaces to align values into columns.
 - All services: `restart: unless-stopped`
+- All services: `mem_limit` set (see **Memory limits** above)
 - All services: `container_name: {name}` (avoid auto-generated names like `traefik-traefik-1`)
 - `.env.example` in repo root documents all variables across all services
 - Each service with local volume directories has its own `.gitignore`; root `.gitignore` covers only repo-wide ignores (`.env`)
