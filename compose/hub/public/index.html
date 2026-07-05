@@ -527,15 +527,17 @@
           {
             name: "PocketBase",
             sub: "pb",
+            path: "/_/",
             desc: "Lightweight BaaS & SQLite admin UI",
           },
         ];
 
         function buildCard(svc) {
           const host = `${svc.sub}.${domain}`;
+          const path = svc.path || "";
           const a = document.createElement("a");
           a.className = "card";
-          a.href = `https://${host}`;
+          a.href = `https://${host}${path}`;
           a.tabIndex = 0;
           a.innerHTML = `
           <div class="card-name">${svc.name}</div>
