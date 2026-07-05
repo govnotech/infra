@@ -1,6 +1,6 @@
 # Server Infrastructure — Agent Context
 
-Self-hosted VPS stack. Each service lives in `compose/{name}/compose.yml`. All compose files are run from the **repo root** with `--env-file .env` to load the shared env file (Docker Compose v2 loads `.env` from the compose file's directory, not cwd):
+Self-hosted VPS stack. Each service lives in `compose/{name}/compose.yml`. On the server the repo is cloned to **`/opt/infra`** (FHS-canonical: each add-on package gets its own `/opt/<package>` tree, which also gives the relative bind-mount volumes a stable, backup-friendly home) — `/opt` is owned by `root`, so the directory is `chown`ed to the admin user once so everything runs without `sudo`. Layer 3 apps follow the same pattern as siblings under `/opt/<app>` or `/opt/<namespace>/<app>`. All compose files are run from the **repo root** with `--env-file .env` to load the shared env file (Docker Compose v2 loads `.env` from the compose file's directory, not cwd):
 
 ```bash
 docker compose --env-file .env -f compose/watchtower/compose.yml up -d

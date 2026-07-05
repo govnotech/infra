@@ -32,7 +32,17 @@ Starting from a bare server? Do the [initial host setup](#appendix--fresh-server
 
 ## Quick Start
 
-1. Clone the repository onto the server.
+1. Clone the repository into `/opt/infra` on the server. `/opt` is owned by `root`, so create the directory and hand it to your admin user first — then everything below runs without `sudo`:
+
+   ```bash
+   sudo mkdir -p /opt/infra
+   sudo chown $USER:$USER /opt/infra
+   git clone https://github.com/govnotech/infra.git /opt/infra
+   cd /opt/infra
+   ```
+
+   `/opt/<package>` is the FHS-canonical home for self-contained add-on software. Services bind-mount their data relative to each compose directory, so a stable, well-known location keeps volumes and backups predictable. [Layer 3](#layer-3--applications) apps follow the same pattern — each clones into its own `/opt/<app>` or `/opt/<namespace>/<app>`.
+
 2. Copy `.env.example` to `.env` and fill in the values:
 
    ```bash
