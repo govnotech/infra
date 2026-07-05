@@ -51,6 +51,16 @@ LABELS: Dict[str, str] = {
     'pocketbase': 'lightweight BaaS',
 }
 
+# Public-facing subdomains that need their own Cloudflare record. Everything
+# else is private and covered by the *.DOMAIN wildcard → Tailscale IP, so it
+# needs no manual DNS. Each entry: (subdomain, proxy, description) where proxy
+# is 'proxied' (orange cloud) or 'dns-only' (grey cloud).
+PUBLIC_RECORDS: Dict[str, List[Tuple[str, str, str]]] = {
+    'n8n': [('hooks', 'dns-only', 'n8n webhooks')],
+    'openpanel': [('op-api', 'proxied', 'OpenPanel event ingestion')],
+    'pocketbase': [('pb-api', 'proxied', 'PocketBase public API')],
+}
+
 ANSI = {
     'green': '\033[32m',
     'red': '\033[31m',
@@ -259,6 +269,59 @@ def run_tui(stdscr: 'curses._CursesWindow') -> Optional[List[str]]:
             return None
 
 
+def read_env_var(name: str) -> Optional[str]:
+    """Read a single variable from the .env file (no full parser needed)."""
+    try:
+        with open(ENV_FILE) as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith('#') or '=' not in line:
+                    continue
+                key, _, val = line.partition('=')
+                if key.strip() == name:
+                    return val.strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return None
+
+
+def print_cloudflare_records(services: List[str]) -> None:
+    """Print the public DNS records to add to Cloudflare for what was deployed."""
+    records = [(sub, proxy, desc)
+               for svc in services
+               for sub, proxy, desc in PUBLIC_RECORDS.get(svc, [])]
+    if not records:
+        return
+
+    domain = read_env_var('DOMAIN') or '<DOMAIN>'
+    public_ip = read_env_var('TRAEFIK_PUBLIC_IP') or '<TRAEFIK_PUBLIC_IP>'
+
+    bar = '─' * 42
+    print()
+    print(f"{ANSI['bold']}{bar}{ANSI['reset']}")
+    print()
+    print(f"{ANSI['bold']}Cloudflare — public DNS records{ANSI['reset']}")
+    print()
+    print(f"  Everything private is covered by the "
+          f"{ANSI['bold']}*.{domain}{ANSI['reset']} wildcard")
+    print(f"  {ANSI['dim']}(→ Tailscale IP, DNS-only) — no manual record needed.{ANSI['reset']}")
+    print(f"  Only the public endpoints below need their own A record")
+    print(f"  on the public IP ({ANSI['bold']}{public_ip}{ANSI['reset']}):")
+    print()
+
+    host_w = max(len(f"{sub}.{domain}") for sub, _, _ in records)
+    for sub, proxy, desc in records:
+        host = f"{sub}.{domain}"
+        if proxy == 'proxied':
+            cloud = f"{ANSI['yellow']}Proxied {ANSI['reset']}"
+        else:
+            cloud = f"{ANSI['dim']}DNS only{ANSI['reset']}"
+        print(f"  {host:<{host_w}}  A  {public_ip:<15}  {cloud}  "
+              f"{ANSI['dim']}{desc}{ANSI['reset']}")
+    print()
+    print(f"{ANSI['bold']}{bar}{ANSI['reset']}")
+
+
 def ensure_network(name: str) -> bool:
     check = subprocess.run(['docker', 'network', 'inspect', name], capture_output=True)
     if check.returncode == 0:
@@ -341,6 +404,8 @@ def run_launch(services: List[str]) -> None:
         parts.append(f"{ANSI['yellow']}{n_skip} skipped{ANSI['reset']}")
     print(f"\n  {', '.join(parts)}")
     print()
+
+    print_cloudflare_records(services)
 
     if n_fail:
         sys.exit(1)
