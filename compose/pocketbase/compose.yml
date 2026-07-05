@@ -16,14 +16,14 @@ services:
       traefik.enable: true
       traefik.http.services.pocketbase.loadbalancer.server.port: 8090
 
-      # Admin UI — private, Tailscale only
+      # Admin UI + full app — private, base host (wildcard → Tailscale)
       traefik.http.routers.pocketbase.rule: Host(`pb.${DOMAIN}`)
       traefik.http.routers.pocketbase.entrypoints: tailscale
       traefik.http.routers.pocketbase.tls: true
       traefik.http.routers.pocketbase.tls.certresolver: lets-encrypt
 
-      # API — public, admin UI path blocked
-      traefik.http.routers.pocketbase-api.rule: Host(`pb.${DOMAIN}`) && !PathPrefix(`/_/`)
+      # API — public, dedicated host, admin UI path blocked
+      traefik.http.routers.pocketbase-api.rule: Host(`pb-api.${DOMAIN}`) && !PathPrefix(`/_/`)
       traefik.http.routers.pocketbase-api.entrypoints: websecure
       traefik.http.routers.pocketbase-api.tls: true
       traefik.http.routers.pocketbase-api.tls.certresolver: lets-encrypt

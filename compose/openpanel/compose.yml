@@ -16,7 +16,7 @@ x-app-env: &app-env
   DATABASE_URL: postgresql://postgres:postgres@op-db:5432/postgres
   DATABASE_URL_DIRECT: postgresql://postgres:postgres@op-db:5432/postgres
   DASHBOARD_URL: https://op.${DOMAIN}
-  API_URL: https://op.${DOMAIN}/api
+  API_URL: https://op-api.${DOMAIN}
   COOKIE_SECRET: ${OPENPANEL_COOKIE_SECRET}
 
 services:
@@ -113,13 +113,11 @@ services:
       traefik.docker.network: traefik
       traefik.http.services.op-api.loadbalancer.server.port: 3000
 
-      traefik.http.middlewares.op-api-strip.stripprefix.prefixes: /api
-
-      traefik.http.routers.op-api.rule: Host(`op.${DOMAIN}`) && PathPrefix(`/api`)
+      # Event ingestion — public, dedicated host (whole host maps to the API)
+      traefik.http.routers.op-api.rule: Host(`op-api.${DOMAIN}`)
       traefik.http.routers.op-api.entrypoints: tailscale,websecure
       traefik.http.routers.op-api.tls: true
       traefik.http.routers.op-api.tls.certresolver: lets-encrypt
-      traefik.http.routers.op-api.middlewares: op-api-strip
 
   op-dashboard:
     container_name: op-dashboard
