@@ -7,6 +7,7 @@ services:
     container_name: netdata
     image: netdata/netdata:latest
     restart: unless-stopped
+    mem_limit: 512m
     cap_add:
       - SYS_PTRACE
       - SYS_ADMIN

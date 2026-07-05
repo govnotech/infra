@@ -7,6 +7,7 @@ services:
     container_name: dockge
     image: louislam/dockge:1
     restart: unless-stopped
+    mem_limit: 256m
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data:/app/data

@@ -7,6 +7,7 @@ services:
     container_name: uptime-kuma
     image: louislam/uptime-kuma:2
     restart: unless-stopped
+    mem_limit: 384m
     volumes:
       - ./data:/app/data
     networks:

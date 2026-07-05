@@ -3,6 +3,7 @@ services:
     container_name: watchtower
     image: containrrr/watchtower:latest
     restart: unless-stopped
+    mem_limit: 256m
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
