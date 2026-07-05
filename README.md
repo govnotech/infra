@@ -2,6 +2,8 @@
 
 > Minimum specs: **4 vCPU / 8 GB RAM / 160 GB NVMe SSD**, Ubuntu 22.04 LTS or Debian 12.
 
+Starting from a bare server? Do the [initial host setup](#appendix--fresh-server-setup) first, then continue with the Quick Start below.
+
 ![Hub dashboard](screenshot.webp)
 
 ## Table of Contents
@@ -24,6 +26,7 @@
   - [OpenPanel](#openpanel)
   - [PocketBase](#pocketbase)
 - [Layer 3 — Applications](#layer-3--applications)
+- [Appendix — Fresh Server Setup](#appendix--fresh-server-setup)
 
 ---
 
@@ -282,3 +285,163 @@ Lightweight BaaS: SQLite, built-in auth, realtime subscriptions, file storage, a
 Custom applications deployed on this server. Each app connects to shared infrastructure ([Traefik](#traefik), [PostgreSQL](#postgresql-shared)) defined in Layers 0–2.
 
 _This layer is out of scope for this repository — each application lives in its own repository with its own compose configuration._
+
+---
+
+## Appendix — Fresh Server Setup
+
+Bootstrapping a freshly-provisioned server up to the point where the stack above can be deployed.
+
+> Everything below was run on **Ubuntu 26.04 LTS**; current as of **2026-07-05**. Commands are run as `root` unless already prefixed with `sudo`. Replace the placeholders with your own — `vovarevenko` (admin username), `SERVER_IP` (server IP), `govno-01` (hostname).
+
+### 1. Update & reboot
+
+```bash
+apt update && apt upgrade -y
+reboot
+```
+
+### 2. Create a sudo user
+
+Avoid working as `root` — create a personal user, grant sudo, and copy the SSH keys so you can log in as them:
+
+```bash
+adduser vovarevenko
+usermod -aG sudo vovarevenko
+rsync --archive --chown=vovarevenko:vovarevenko ~/.ssh /home/vovarevenko
+```
+
+Reconnect as the new user and confirm sudo works:
+
+```bash
+ssh vovarevenko@SERVER_IP
+sudo whoami # → root
+```
+
+### 3. Harden SSH
+
+Edit `/etc/ssh/sshd_config`:
+
+```txt
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+X11Forwarding no
+AllowUsers vovarevenko
+```
+
+`AllowUsers vovarevenko` — only listed users may connect. Add any future deploy/CI user explicitly (`AllowUsers vovarevenko deploy`), otherwise they will be refused.
+
+Validate, reload, and **verify login in a second terminal before closing the current session**:
+
+```bash
+sudo sshd -t
+sudo systemctl reload ssh
+sudo sshd -T | grep -E 'permitrootlogin|passwordauthentication|kbdinteractiveauthentication|pubkeyauthentication|x11forwarding|allowusers'
+```
+
+### 4. Firewall (UFW)
+
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow OpenSSH
+sudo ufw enable
+sudo ufw status verbose
+```
+
+> **No need to `ufw allow` the web ports.** Docker publishes container ports (Traefik's `80`/`443`) through its own iptables rules that sit ahead of UFW — they work without a UFW rule, and UFW can't block them either. Here UFW only guards host services like SSH.
+
+### 5. Unattended security upgrades
+
+```bash
+sudo apt install -y unattended-upgrades
+sudo dpkg-reconfigure unattended-upgrades
+```
+
+Verify (both values should be `1`):
+
+```bash
+cat /etc/apt/apt.conf.d/20auto-upgrades
+```
+
+### 6. Fail2ban
+
+Blocks brute-force SSH scans even with password auth disabled.
+
+```bash
+sudo apt install -y fail2ban
+sudo systemctl enable --now fail2ban
+```
+
+Create `/etc/fail2ban/jail.d/sshd.local`:
+
+```ini
+[sshd]
+enabled = true
+backend = systemd
+maxretry = 5
+findtime = 10m
+bantime = 1h
+```
+
+Apply and confirm the jail is live:
+
+```bash
+sudo systemctl restart fail2ban
+sudo fail2ban-client status sshd
+```
+
+`status sshd` shows the failed/banned counters and the `Journal matches` line — if you see it, the config applied.
+
+### 7. Hostname, timezone, swap
+
+Check the current values:
+
+```bash
+hostnamectl
+timedatectl
+```
+
+Change them if needed — pick a hostname, keep the clock on UTC:
+
+```bash
+sudo hostnamectl set-hostname govno-01
+sudo timedatectl set-timezone UTC
+```
+
+> Keep the server on **UTC** — no DST jumps, cleaner logs, cron, and backups. Handle user- and business-local time in the application layer, not the OS clock.
+
+Every container sets a `mem_limit`, but on an 8 GB box those ceilings intentionally overcommit and databases can still spike past their own limit (OpenPanel's ClickHouse, MongoDB, Postgres, the `noeviction` Redis). Keep a small swap as a backstop, with low swappiness so hot DB pages stay in RAM and swap is only touched under real pressure — a brief spike then pages out instead of triggering an OOM kill. Add it if none exists (check with `swapon --show` or `free -h`):
+
+```bash
+sudo fallocate -l 4G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-swappiness.conf
+sudo sysctl --system
+```
+
+> The `mem_limit`s and swap are complementary: the limits contain a runaway to its own container (surgical OOM, not a random victim), while swap absorbs the brief legitimate spikes.
+
+### 8. Install Docker
+
+Use the official apt repository ([docs](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)) — not `apt install docker.io`.
+
+Run Docker without `sudo` — note the `docker` group is effectively root-level access, which is fine for a single-admin server:
+
+```bash
+sudo usermod -aG docker vovarevenko
+```
+
+Log out and back in for the group to take effect, then verify:
+
+```bash
+docker compose version
+docker run --rm hello-world
+```
+
+The server is now ready for the [Quick Start](#quick-start) above.
