@@ -65,7 +65,7 @@ Starting from a bare server? Do the [initial host setup](#appendix--fresh-server
    # …
    ```
 
-**Image versioning:** Critical services (PostgreSQL, Redis) are pinned to a major version (e.g. `postgres:16`) — [Watchtower](#watchtower) updates patch/minor releases but never jumps to a new major. Non-critical services (Dozzle, Watchtower itself) use `latest`.
+**Image versioning:** Critical services (PostgreSQL, Redis) are pinned to a major version (e.g. `postgres:18`) — [Watchtower](#watchtower) updates patch/minor releases but never jumps to a new major. Non-critical services (Dozzle, Watchtower itself) use `latest`.
 
 Private services route through the `tailscale` Traefik entrypoint — DNS for their subdomains points to `TRAEFIK_TAILSCALE_IP` (Cloudflare grey cloud), so they are only reachable from within the Tailscale network.
 

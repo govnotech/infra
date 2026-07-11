@@ -36,7 +36,7 @@ labels:
 
 **Image versioning:**
 
-- Critical services (Postgres, Redis, MongoDB, Traefik) → pin to major version (`postgres:16`, `mongo:8`, `traefik:v3`)
+- Critical services (Postgres, Redis, MongoDB, Traefik) → pin to major version (`postgres:18`, `mongo:8`, `traefik:v3`)
 - Non-critical → `latest` is fine
 - Embedded databases that ship as part of an upstream service's bundled compose (e.g. OpenPanel's `op-db`, `op-kv`, `op-ch`) → pin to the exact version the upstream tests against (`postgres:14-alpine`, `redis:7.2.5-alpine`, `clickhouse/clickhouse-server:25.10.2.65`). Their migrations target a specific version — drift can break the upstream service.
 - [Watchtower](compose/watchtower/compose.yml) handles minor/patch updates; never jumps major versions

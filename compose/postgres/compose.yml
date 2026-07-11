@@ -5,12 +5,15 @@ networks:
 services:
   postgres:
     container_name: postgres
-    image: postgres:17
+    image: postgres:18
     restart: unless-stopped
     mem_limit: 1g
     volumes:
       - ./data:/var/lib/postgresql/data
     environment:
+      # 18+ defaults to a versioned subdir `/var/lib/postgresql/18/docker`;
+      # pin the flat path so the bind mount stays stable across major bumps
+      PGDATA: /var/lib/postgresql/data
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     shm_size: 128mb

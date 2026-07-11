@@ -42,6 +42,7 @@
     "overcommits",
     "passwordauthentication",
     "permitrootlogin",
+    "pgdata",
     "pocketbase",
     "pubkeyauthentication",
     "redirections",
