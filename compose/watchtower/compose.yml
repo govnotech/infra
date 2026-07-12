@@ -9,3 +9,6 @@ services:
     environment:
       WATCHTOWER_SCHEDULE: ${WATCHTOWER_SCHEDULE}
       WATCHTOWER_CLEANUP: true
+      WATCHTOWER_LABEL_ENABLE: true
+    labels:
+      com.centurylinklabs.watchtower.enable: true

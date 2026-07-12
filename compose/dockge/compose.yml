@@ -17,6 +17,7 @@ services:
     networks:
       - traefik
     labels:
+      com.centurylinklabs.watchtower.enable: true
       traefik.enable: true
       traefik.http.routers.dockge.rule: Host(`dockge.${DOMAIN}`)
       traefik.http.routers.dockge.entrypoints: tailscale

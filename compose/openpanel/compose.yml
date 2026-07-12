@@ -109,6 +109,8 @@ services:
       - openpanel
       - traefik
     labels:
+      com.centurylinklabs.watchtower.enable: true
+
       traefik.enable: true
       traefik.docker.network: traefik
       traefik.http.services.op-api.loadbalancer.server.port: 3000
@@ -139,6 +141,8 @@ services:
       - openpanel
       - traefik
     labels:
+      com.centurylinklabs.watchtower.enable: true
+
       traefik.enable: true
       traefik.docker.network: traefik
       traefik.http.services.op-dashboard.loadbalancer.server.port: 3000
@@ -165,3 +169,5 @@ services:
       retries: 5
     networks:
       - openpanel
+    labels:
+      com.centurylinklabs.watchtower.enable: true

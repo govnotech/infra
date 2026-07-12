@@ -65,7 +65,7 @@ Starting from a bare server? Do the [initial host setup](#appendix--fresh-server
    # …
    ```
 
-**Image versioning:** Critical services (PostgreSQL, Redis) are pinned to a major version (e.g. `postgres:18`) — [Watchtower](#watchtower) updates patch/minor releases but never jumps to a new major. Non-critical services (Dozzle, Watchtower itself) use `latest`.
+**Image versioning:** Critical services (PostgreSQL, Redis) are pinned to a major version (e.g. `postgres:18`) — [Watchtower](#watchtower) updates explicitly enabled containers within that tag. Non-critical services (Dozzle, Watchtower itself) use `latest`, which follows whatever release the upstream publishes under that tag.
 
 Private services route through the `tailscale` Traefik entrypoint — DNS for their subdomains points to `TRAEFIK_TAILSCALE_IP` (Cloudflare grey cloud), so they are only reachable from within the Tailscale network.
 
@@ -136,11 +136,18 @@ _Sorted by deployment priority — each service may be a prerequisite for those 
 
 **Deploy:** [`compose/watchtower/compose.yml`](compose/watchtower/compose.yml)
 
-Automatically pulls and restarts containers when new images are published. Deploy first — covers all services that follow.
+Automatically pulls and restarts explicitly enabled containers when new images are published. Deploy first — covers opted-in services that follow.
 
 **Required in `.env`:** `WATCHTOWER_SCHEDULE` — see [`.env.example`](.env.example).
 
-By default, watches all containers. Use `--label-enable` to opt-in specific containers instead.
+Runs in opt-in mode (`WATCHTOWER_LABEL_ENABLE=true`). Only containers carrying the following server-side label are monitored and updated:
+
+```yaml
+labels:
+  com.centurylinklabs.watchtower.enable: true
+```
+
+An absent label means “do not update”; application repositories therefore need no Watchtower-specific exclusion. For Layer 3 applications, add the enable label only in the server deployment overlay after confirming that unattended updates are safe. OpenPanel's version-coupled embedded databases (`op-db`, `op-kv`, `op-ch`) intentionally remain unlabeled.
 
 ### Traefik
 

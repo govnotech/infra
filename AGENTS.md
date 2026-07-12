@@ -39,7 +39,16 @@ labels:
 - Critical services (Postgres, Redis, MongoDB, Traefik) → pin to major version (`postgres:18`, `mongo:8`, `traefik:v3`)
 - Non-critical → `latest` is fine
 - Embedded databases that ship as part of an upstream service's bundled compose (e.g. OpenPanel's `op-db`, `op-kv`, `op-ch`) → pin to the exact version the upstream tests against (`postgres:14-alpine`, `redis:7.2.5-alpine`, `clickhouse/clickhouse-server:25.10.2.65`). Their migrations target a specific version — drift can break the upstream service.
-- [Watchtower](compose/watchtower/compose.yml) handles minor/patch updates; never jumps major versions
+- [Watchtower](compose/watchtower/compose.yml) updates only explicitly enabled containers. Major-pinned tags receive minor/patch updates; `latest` follows the upstream tag and can cross major versions.
+
+**Automatic updates** — Watchtower runs with `WATCHTOWER_LABEL_ENABLE=true`, so updates are opt-in. An absent `com.centurylinklabs.watchtower.enable` label means “do not update”; do not add `enable=false` as routine boilerplate. Add the following label only in server-owned compose files or deployment overlays, and only after confirming that unattended updates are safe:
+
+```yaml
+labels:
+  com.centurylinklabs.watchtower.enable: true
+```
+
+Layer 3 application base compose files must remain Watchtower-agnostic; their server overlay owns the opt-in decision. Version-coupled embedded databases and one-shot jobs remain unlabeled.
 
 **Memory limits** — every service carries a `mem_limit` (Compose v2 short form), placed right after `restart:`. It's a ceiling, not a reservation: a container consumes only what it needs, so the sum of ceilings intentionally overcommits the 8 GB box — typical concurrent usage fits with page-cache headroom, and pods that spike are contained by per-cgroup OOM (killing the offender, not a random victim) with [swap](README.md#7-hostname-timezone-swap) as the transient-spike backstop. Size by profile: light Go/nginx/Rust `128m`–`256m`, Node apps `384m`–`512m`, shared databases `1g`, ingress (Traefik) `384m`. Never set `memswap_limit == mem_limit` on a database — that forbids swap inside the container and turns a legitimate query spike into an instant kill.
 
@@ -50,7 +59,7 @@ labels:
 
 **Volume paths** — before writing a volume mount, verify the actual data path in the image: check the Dockerfile (`VOLUME`, `WORKDIR`, entrypoint args like `--dir`) on Docker Hub or the image's GitHub repo. Never guess paths.
 
-**YAML quoting** — do not quote values unless YAML requires it. Quotes are only necessary when the value would otherwise be misinterpreted: booleans (`true`/`false`), numbers, or strings starting with YAML indicator characters. Plain strings, hostnames, entrypoint names, and Traefik rules (including backtick expressions) do not need quotes in block context.
+**YAML quoting** — do not quote values unless YAML requires it. Use native unquoted booleans (`true`/`false`), including boolean Docker label flags; Compose normalizes label values for Docker. Quotes are necessary when a value must remain a string but YAML would otherwise interpret it as another type (such as a boolean or number), or when it starts with a YAML indicator character. Plain strings, hostnames, entrypoint names, and Traefik rules (including backtick expressions) do not need quotes in block context.
 
 **Launcher script** — `./start` in repo root. Interactive TUI (Python 3 + curses, zero dependencies). Manages deploy order and auto-selects transitive dependencies. When adding a new service: add it to `ORDER`, `DEPS`, and `LABELS` in `start` — all three should list services in the same order (Layer 1 by deploy priority, Layer 2 alphabetically).
 
@@ -80,7 +89,7 @@ Layer 1 order is intentional — it reflects recommended deployment sequence (de
 
 | Service | Subdomain | Entrypoint | Notes |
 | --- | --- | --- | --- |
-| Watchtower | — | — | Auto-updates containers |
+| Watchtower | — | — | Opt-in auto-updates for explicitly labeled containers |
 | Traefik | `traefik.DOMAIN` | tailscale | Reverse proxy, TLS, dashboard |
 | Vaultwarden | `vaultwarden.DOMAIN` | tailscale | Password manager |
 | PostgreSQL | — | — | Shared DB, `postgres` Docker network |

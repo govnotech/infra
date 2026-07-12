@@ -23,6 +23,8 @@ services:
     networks:
       - traefik
     labels:
+      com.centurylinklabs.watchtower.enable: true
+
       traefik.enable: true
       traefik.http.routers.netdata.rule: Host(`netdata.${DOMAIN}`)
       traefik.http.routers.netdata.entrypoints: tailscale

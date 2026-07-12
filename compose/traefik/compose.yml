@@ -33,6 +33,7 @@ services:
     environment:
       CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN}
     labels:
+      com.centurylinklabs.watchtower.enable: true
       traefik.enable: true
       traefik.http.routers.traefik.rule: Host(`traefik.${DOMAIN}`)
       traefik.http.routers.traefik.entrypoints: tailscale
